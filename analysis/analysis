@@ -1,0 +1,88 @@
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, ggplot2, dplyr, lubridate, stringr, readxl, data.table, gdata)
+install.packages("ggplot2")
+## number 1
+
+data <- readRDS("data/output/full_ma_data.rds")
+summary(data)
+num_observations <- nrow(data)
+print(num_observations)
+
+## number 2
+
+num_plan_types <- length(unique(data$plan_type))
+cat("Number of different plan types", num_plan_types, "\n")
+## number 3 
+plan_count_table <- data %>%
+  group_by(year, plan_type) %>%
+  summarise(plan_count = n())%>%
+  pivot_wider(names_from = year, values_from = plan_count, values_fill = 0)
+
+# Print the table
+print(plan_count_table, n=27)
+
+## number 4
+
+filtered_data <- data %>%
+  filter(!(plan_type %in% c("SNP", "eghp") | grepl("^800", plan_type)))
+
+# Count of observations after exclusions
+num_observations_after_exclusions <- nrow(filtered_data)
+print(paste("Number of observations after exclusions: ", num_observations_after_exclusions))
+
+# Count of unique plan types after exclusions
+num_plan_types_after_exclusions <- length(unique(filtered_data$plan_type))
+print(paste("Number of different plan_types after exclusions: ", num_plan_types_after_exclusions))
+## number 5
+
+##Limiting your dataset only to plans with non-missing enrollment data, provide a graph showing the average number of Medicare Advantage enrollees per county from 2010 to 2015. Be sure to format your graph in a meaningful way.
+final.data <- final.data %>% drop_na(Enrollment)
+avg_enrollment <- final.data %>%
+  group_by(year, county) %>%
+  summarize(avg_Enrollment = mean(Enrollment, na.rm = TRUE))
+ggplot(avg_enrollment, aes(x = county, y = avg_Enrollment, group = year, color = as.factor(Year))) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Average Medicare Advantage Enrollees per County (2010-2015)",
+       x = "County",
+       y = "Average Enrollment") +
+  theme_minimal() +
+  theme(legend.position = "top") +
+  scale_color_discrete(name = "Year") +
+grid()
+## number 6
+crosswalk <- merge(final.data, ma.penetration.data, by.x = "fips")
+merged.data <- merge(crosswalk, plan.premiums, by.x = "state")
+
+merged.data <- merged.data %>% drop_na(Premium)
+avg_premium <- merged.data %>%
+  group_by(Year) %>%
+  summarize(avg_Premium = mean(premium, na.rm = TRUE))
+ggplot(avg_premium, aes(x = Year, y = avg_Premium)) +
+  geom_line(color = "steelblue", size = 1.5) +
+  geom_point(color = "steelblue", size = 3) +
+  labs(title = "Average Medicare Advantage Premium Over Time",
+       x = "Year",
+       y = "Average Premium")
+  grid()
+## Number 7
+premium_counts <- merged.data %>%
+  group_by(year) %>%
+  summarize(Zero_Premium_Plans = sum(premium == 0),
+            Total_Plans = n())
+premium_counts <- premium_counts %>%
+  mutate(Percentage_Zero_Premium = (Zero_Premium_Plans / Total_Plans) * 100)
+ggplot(premium_counts, aes(x = year, y = Percentage_Zero_Premium)) +
+  labs(title = "Percentage of $0 Premium Medicare Advantage Plans Over Time",
+       x = "Year",
+       y = "Percentage of $0 Premium Plans")
+  theme_minimal() +
+  grid()
+## Number 8
+# We dropped the 800 series plans since they are offered by third parties (those who sponsor part D) and they are offered by a public or private employer. We should take it out since this plan is a mixture of other types of plans since it is funded by an employer but for retired folks. People with a series 800 pland also have medicare part A and B.  
+
+## Number 9
+# So many plans have a zero dollar premium because within medicare advantage the insurer can also benefit using co-pays, detuctibles, and co-insurance. These plans can also make the patient restricted to the plans provider network (similar to an HMO)
+## Number 10
+# Working with the data I finally become more comfortable moving from visual studio code to Git, and using R again. However, I was more confused since I usually don't work with multple data sets at once, which made this frustrating. Lastly, I was aggravated since when I would run my code in visual studio my graphs and tables would not show up. I am unsure what to do, or if this means my code is wrong. Right now my _BuildFinalData code is struggling to run so I have been cleaning up the file paths and trying to fix that. Due to this issue I have been unable to fix any other issues with the analysis or start moving my answers over to Quarto. However, I have downloaded Quarto! From here, I am planning on cleaning up my graphs and using the let join fuction to merge the datasets intead of the merge function. I think my tables and graphs were not showing up before since the build final data did not have the correct file paths, so hopefully it will work now. Now I am struggling to push to git, crossing my fingers.
+
